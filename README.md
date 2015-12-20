@@ -12,6 +12,11 @@ If not, level shifters may be added to the hardware.
 
 ## Connection to the displays
 
+The communication to the display modules is done via synchronous serial signals. For that, each module is controlled by its pins `STB` (Strobe), `DI` (Data input) and `CL` (Clock). As we want to keep the number of used pins as low as possible, we use only one `DI`, `CL` pair connected to all modules and control which module is currently active using the specific `STB` pin.
+
+Furthermore, the modules apparently need 5 volts power supply for the LCD drivers and also the logic which decodes the serial signal.
+Last but not least, the operating frequency of 256Hz (or maybe 512Hz for newer modules) for the display (supposedly with which the LCD refresh is triggered) must also be provided at the pin `FR`. Otherwise the display could take damage, eventhough we did not really try that out for a longer period of time, as a output compare pin of the AVR in cooperation with an accordingly configured timer is used all the time.
+
 # Repository
 This repository consists of different sub-directories, which are all important for themselves.
 * avr: the AVR C source code, which is needed until now for the direct communication with the LCD matrix
