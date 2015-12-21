@@ -1,5 +1,5 @@
 bootTime = 0
-timeZone = 1 -- hours added to the GMT
+timeZone = CONFIG.timezone -- hours added to the GMT
 
 function time()
 	return bootTime + (tmr.now() / 1000000)
@@ -28,7 +28,7 @@ function parseUnixTime(data)
 			break
 		end
 	end
-	
+
 	local numLeapDays = math.floor(inYear / 4) - math.floor(inYear / 100) + math.floor(inYear / 400) - 477 -- 477 is the number of leap days until 1970
 	local daysSinceEpoch = (inYear - 1970) * 365 + numLeapDays
 	for i=1,(inMonth-1) do
