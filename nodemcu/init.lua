@@ -6,17 +6,34 @@ local wifiUp = false
 
 
 -- Debug printf
-function dprint(str, ...)
-  if CONFIG.debug then
-    print("Debug: ", str:format(...))
+if CONFIG.debug == "file" or CONFIG.debug == "serial" then
+  function dprint(str, ...)
+    if CONFIG.debug == "file" then
+      -- TODO: Buffering? The flash has limited write cycles! Also, increase speed!
+      file.open("debug.txt", "a+")
+      file.writeline(str:format(...))
+      file.close()
+    elseif CONFIG.debug == "serial" then
+      print("Debug: ", str:format(...))
+    end
   end
+else
+  -- Save some RAM & CPU time by not having a real debug function if debug is disabled.
+  function dprint() end
 end
 
 
 
--- Print data to display(Or ATM diffrent uC). For mapping see README.md
+-- Print data to display(Or, ATM, diffrent uC). For mapping see README.md
 function sendToDisplay(...)
 	uart.write(0, ...)
+end
+
+
+
+-- Print formated string to display
+function sendLineToDisplayF(str, ...)
+	uart.write(0, (str:format(...)):sub(1, CONFIG.width) )
 end
 
 
@@ -63,9 +80,15 @@ function toggleMode()
       if run then
         dprint("Changing mode to %s", nextMode.name)
         if modes[currentMode].deactivate then
-          modes[currentMode]:deactivate()
+          if not modes[currentMode]:deactivate() then
+            -- Function returned no error, we're ok to switch modes!
+            currentMode = nextMode
+            nextMode:activate()
+          else
+            -- Not yet ready...
+            -- dprint("Module not ready to switch yet!")
+          end
         end
-        nextMode:activate()
       end
     end
   end
@@ -97,24 +120,19 @@ function setupWifi()
 
   -- States the wifi can change to
   local states = {
-    IDLE       = wifi.STA_IDLE,
-    CONNECTING = wifi.STA_CONNECTING,
-    WRONGPWD   = wifi.STA_WRONGPWD,
-    APNOTFOUND = wifi.STA_APNOTFOUND,
-    FAIL       = wifi.STA_FAIL,
-    GOTIP      = wifi.STA_GOTIP
+    IDLE       = wifi.wifi_event_IDLE,
+    CONNECTING = wifi.wifi_event_CONNECTING,
+    WRONGPWD   = wifi.wifi_event_WRONGPW,
+    APNOTFOUND = wifi.wifi_event_APNOTFOUN,
+    FAIL       = wifi.wifi_event_FAIL,
+    GOTIP      = wifi.wifi_event_GOTIP
   }
 
   -- Register a callback function for each
-  for name, state in pairs(states) do
-    wifi.sta.eventMonReg(state, "unreg")
-    wifi.sta.eventMonReg(state, function(prev)
-      -- You can save some RAM here by not using 5x2 upvalues, but loose debugging and convenience
-      dprint("Wifi switched from state %s to %s(%s)", prev, state, name)
-      if _G["wifi_event_" .. name] then
-        _G["wifi_event_" .. name](prev)
-      end
-    end)
+  for state, func in pairs(states) do
+    local statecode = wifi["STA_" .. state]
+    wifi.sta.eventMonReg(statecode, "unreg")
+    wifi.sta.eventMonReg(statecode, func)
   end
 end
 
@@ -125,30 +143,33 @@ end
 --[[ Wifi callbacks ]]--
  -- see setupWifi() on how they are called!
 
-function wifi_event_IDLE()
+function wifi_event_IDLE(prev)
+  dprint("Wifi is idle...")
   wifiup = false
 end
 
-function wifi_event_CONNECTING()
+function wifi_event_CONNECTING(prev)
+  dprint("Connecting...")
   wifiup = false
 end
 
-function wifi_event_WRONGPW()
+function wifi_event_WRONGPW(prev)
   dprint("Wrong password. Check config!")
   wifiup = false
 end
 
-function wifi_event_APNOTFOUN()
+function wifi_event_APNOTFOUN(prev)
   dprint("Can't find AP. Check range and config!")
   wifiup = false
 end
 
-function wifi_event_FAIL()
+function wifi_event_FAIL(prev)
+  dprint("Wifi error!")
   wifiup = false
 end
 
-function wifi_event_GOTIP()
-  dprint("Got IP!")
+function wifi_event_GOTIP(prev)
+  dprint("Got IP! (Now connected!)")
   requestTimeHTTP()
   wifiup = true
 end
@@ -158,7 +179,8 @@ end
 
 
 function main()
-  modes[currentMode]:activate()
+  setupWifi()
+  toggleMode()
 	tmr.alarm(0, CONFIG.mode_toggle, 1, toggleMode)
 	uart.on("data", "\r", exit, 0)
 end
