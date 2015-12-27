@@ -65,7 +65,6 @@ uint8_t writeUTF8(const char* inputBuffer, uint16_t* currentPosition,
 			continue;
 		}
 		if (chr == '\n') {
-			// TODO: Known bugs: last line can not be centered (probably, because \n is not effective there?)
 			if(centerCharacters) {
 				uint8_t lineWidth = (*currentPosition) % TOTAL_ROWS;
 				if(lineWidth < TOTAL_ROWS - 1 && lineWidth > 0) { /* otherwise it cannot be centered */
