@@ -33,7 +33,7 @@ printf("Schedule version: %q", obj.schedule.version)
 for _, day in pairs(obj.schedule.conference.days) do
 	local cday = {
 		index = day.index,
-		events = {}
+		rooms = {}
 	}
 	for _, room in pairs(day.rooms) do
 		for _, event in pairs(room) do
@@ -49,10 +49,10 @@ for _, day in pairs(obj.schedule.conference.days) do
 			local unixt = os.time(date)
 			local d_hours, d_mins = event.duration:match("(%d+):(%d+)")
 			local duration = (tonumber(d_hours) * 60) + tonumber(d_mins)
-			table.insert(cday.events, {
+			cday.rooms[event.room] = cday.rooms[event.room] or {}
+			table.insert(cday.rooms[event.room], {
 				start = unixt,
 				stop = unixt + duration,
-				room = event.room,
 				title = event.title
 			})
 		end
@@ -63,4 +63,3 @@ for _, day in pairs(obj.schedule.conference.days) do
 	outfile:close()
 
 end
-
