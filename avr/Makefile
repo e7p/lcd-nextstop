@@ -1,7 +1,7 @@
 MMCU=atmega328p
 F_CPU=16000000
 PROG=arduino
-PROG_PORT=/dev/ttyUSB1
+PROG_PORT=/dev/ttyUSB0
 
 TARGET=main.hex
 

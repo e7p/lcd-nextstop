@@ -21,7 +21,7 @@ void writeCharacter(struct char_info_t* PROGMEM inputChar,
 
 	uint8_t charwidth = pgm_read_byte(&(inputChar->width));
 
-	if (startspace >= 0 || (*currentPosition) >= -startspace) {
+	if (startspace >= 0 || ((*currentPosition) % TOTAL_ROWS) >= -startspace) {
 		uint8_t expEndLine = (*currentPosition + charwidth + startspace) / TOTAL_ROWS;
 		if (expEndLine < NUM_LINES && expEndLine != *currentPosition / TOTAL_ROWS) {
 			(*currentPosition) = ((*currentPosition / TOTAL_ROWS) + 1) * TOTAL_ROWS;
@@ -62,14 +62,14 @@ uint8_t writeUTF8(const char* inputBuffer, uint16_t* currentPosition,
 	while ((chr = inputBuffer[readBytes++]) != '\0') {
 		if (chr == '\x10') { /* center the current line */
 			centerCharacters = 1;
+			continue;
 		}
 		if (chr == '\n') {
 			// TODO: Known bugs: last line can not be centered (probably, because \n is not effective there?)
-			// also it would be great to add spacing to the begin of the line, and do that not only in the first line, because of line wrapping...
 			if(centerCharacters) {
 				uint8_t lineWidth = (*currentPosition) % TOTAL_ROWS;
-				if(lineWidth < TOTAL_ROWS - 1 && lineWidth > 0) { /* otherwise it is already centered */
-					uint8_t currentLineOffset = ((*currentPosition) / TOTAL_ROWS) * TOTAL_ROWS;
+				if(lineWidth < TOTAL_ROWS - 1 && lineWidth > 0) { /* otherwise it cannot be centered */
+					uint16_t currentLineOffset = ((*currentPosition) / TOTAL_ROWS) * TOTAL_ROWS;
 					uint8_t destinationOffset = (TOTAL_ROWS + lineWidth) / 2;
 
 					/* Center it now */
@@ -117,10 +117,6 @@ uint8_t writeUTF8(const char* inputBuffer, uint16_t* currentPosition,
 								currentPosition);
 						}
 					}
-				while (!(UCSR0A & (1<<UDRE0))); /* wait for UART */
-				UDR0 = uc_chr[0];
-				while (!(UCSR0A & (1<<UDRE0))); /* wait for UART */
-				UDR0 = uc_chr[1];
 					if (onlyOneCharacter) {
 						break;
 					}
