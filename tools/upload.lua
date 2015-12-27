@@ -6,15 +6,16 @@
 
 local sleep = require("socket").sleep
 
-local delay = 0.5
 local readsize = 70
 local pre = "file.open(%q, \"w\")\n"
 local enc = "file.write([=====[%s]=====])\n"
-local post = "file.close()\n"
+local comp = "node.compile(%q)\nfile.remove(%q\n)"
+local post = "file.flush()\nfile.close()\n"
 
 local dev = assert(arg[1])
 local src = assert(arg[2])
 local to = assert(arg[3])
+local delay = tonumber(arg[4]) or 0.6
 
 local file = assert(io.open(src, "r"))
 local dev = assert(io.open(dev, "w"))
@@ -37,6 +38,9 @@ while true do
 		w(enc:format(cdata))
 	end
 end
+-- if arg[3]:sub(-4) == ".lua" then
+-- 	w(comp:format(arg[3], arg[3]))
+-- end
 w(post)
 
 io.write("\n")
